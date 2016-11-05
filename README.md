@@ -180,3 +180,8 @@ greeter.command(options: [Option.help]) {_, _ in
 ./greeter --help
 ```
 Just a little helper `Option` that defines a `-h--help` option
+
+## Installation
+
+### Manual
+add "Swift CLI.swift" to your project

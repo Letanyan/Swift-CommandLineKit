@@ -1,5 +1,5 @@
-# Swift-CommandLineKit
-Create Swift command line programs more easily. Adding in flags and options are simple and argument inputs are typed. SwiftCLI
+# Swift CommandLineKit
+Create command line programs more easily. Adding in flags and options are simple and argument inputs are typed. CommandLineKit
 is made to be customizable and give as much power to its user as possible.
 
 ## Usage

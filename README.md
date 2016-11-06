@@ -150,7 +150,7 @@ This will make sure a call has all flags if the command is executed
 Options can have associated values with usage such as `./app --count=4 --name=John`
 ```Swift
 let name = Option(long: "name")
-let count = Option(long: "count")
+let count = Option(long: "count", argument: .int(nil))
 
 var greeter = Console()
 
@@ -168,6 +168,12 @@ greeter.run()
 ```
 Any of these call would work `./greeter --name=John`, `./greeter --count=4`, `./greeter --count=2 --name=John`
 Here we show that we can have commands with default values and how to use values associated with options. All command closure get passed with a `[Argument]` and `[Option: Argument]`. Options that are just flags are also added to this dictionary so you can check against it to check if a flag is set. Options without a value are given an .int(1) value.
+
+#### Safe option argument type
+```Swift
+let count = Option(long: "count", argument: .int(nil))
+```
+Including an argument type in an option type ensures that only arguement options with that type are matched.
 
 ### Help!!!
 ```Swift

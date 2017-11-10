@@ -65,7 +65,7 @@ hello.command(inputs: [.string, .int, .int]) {args, _ in
 ```
 So now any of these prompts would work `./hello [string]` `./hello [string] [int]` `./hello [string] [int] [int]` and will match to the corrosponding closure
 
-### Sheldon Cooper Presents Fun with Flags
+### Fun with Flags
 for this example we'll use a text modifying app that can perform lowercase, uppercase and reversal operations on some text
 ```Swift
 var textApp = Console()

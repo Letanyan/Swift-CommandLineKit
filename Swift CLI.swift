@@ -7,7 +7,7 @@ extension String {
 		
 		var isFirst = true
 		
-		for c in characters {
+		for c in self {
 			if c == sep {
 				isFirst = false
 				continue
@@ -222,9 +222,8 @@ struct Option : Hashable, ExpressibleByStringLiteral {
 		var flag: Character? = nil
 		var long: String? = nil
 		
-		let chars = string.characters
-		if chars.contains("-") {
-			let words = chars.split(separator: "-", omittingEmptySubsequences: true)
+		if string.contains("-") {
+			let words = string.split(separator: "-", omittingEmptySubsequences: true)
 			for word in words {
 				if word.count == 1 {
 					flag = word.first!
@@ -232,8 +231,8 @@ struct Option : Hashable, ExpressibleByStringLiteral {
 					long = String(word)
 				}
 			}
-		} else if chars.count == 1 {
-			flag = chars.first!
+		} else if string.count == 1 {
+			flag = string.first!
 		} else {
 			long = string
 		}
@@ -262,31 +261,32 @@ extension CommandLine {
 	static func options() -> [Option] {
 		var result = [Option]()
 		for arg in CommandLine.arguments.dropFirst() {
-			var cs = arg.characters
-			guard let f = cs.popFirst(), f == "-" else {
+			var arg = arg[...]
+			
+			guard let f = arg.popFirst(), f == "-" else {
 				continue
 			}
 			
-			if cs.contains("=") {
-				let text = String(cs)
+			if arg.contains("=") {
+				let text = String(arg)
 				let (name, value) = text.halve(with: "=")
-				if name.characters.count == 1 {
-					result.append(Option(flag: name.characters.first!, argument: Argument(value)))
+				if name.count == 1 {
+					result.append(Option(flag: name.first!, argument: Argument(value)))
 				} else {
 					result.append(Option(long: name, argument: Argument(value)))
 				}
 				continue
 			}
 			
-			guard let s = cs.popFirst() else {
+			guard let s = arg.popFirst() else {
 				continue
 			}
 			
 			if s == "-" {
-				result.append(Option(long: String(cs)))
+				result.append(Option(long: String(arg)))
 			} else {
 				result.append(Option(flag: s))
-				for c in cs {
+				for c in arg {
 					result.append(Option(flag: c))
 				}
 			}
@@ -298,8 +298,9 @@ extension CommandLine {
 	static func args() -> [Argument] {
 		var result = [Argument]()
 		for arg in CommandLine.arguments.dropFirst() {
-			var cs = arg.characters
-			guard let f = cs.popFirst(), f != "-" else {
+			var argc = arg[...]
+			
+			guard let f = argc.popFirst(), f != "-" else {
 				continue
 			}
 			
@@ -312,11 +313,11 @@ extension CommandLine {
 struct Command {
 	let inputs: [ArgumentInput]
 	let options: [Option]
-	let execution: (CommandArg) -> ([Argument]?)
+	let execution: ([Argument], OptionArg) -> ([Argument]?)
 	let matchAny: Bool
 	let isSubset: Bool
 	
-	init(options: [Option], inputs: [ArgumentInput], execution: @escaping (CommandArg) -> ([Argument]?)) {
+	init(options: [Option], inputs: [ArgumentInput], execution: @escaping ([Argument], OptionArg) -> ([Argument]?)) {
 		matchAny = options.contains(Option.any)
 		isSubset = options.contains(Option.subset)
 		self.inputs = inputs
@@ -324,12 +325,12 @@ struct Command {
 		self.execution = execution
 	}
 	
-	init(options: [Option], inputs: [ArgumentInput], finalExecution: @escaping (CommandArg) -> Void) {
+	init(options: [Option], inputs: [ArgumentInput], finalExecution: @escaping ([Argument], OptionArg) -> Void) {
 		matchAny = options.contains(Option.any)
 		isSubset = options.contains(Option.subset)
 		self.inputs = inputs
 		self.options = options.filter { $0 != Option.any && $0 != Option.subset }
-		self.execution = {args, opts in
+		self.execution = { args, opts in
 			finalExecution(args, opts)
 			return nil
 		}
@@ -394,11 +395,10 @@ struct Command {
 }
 
 typealias OptionArg = [Option: Argument]
-typealias CommandArg = ([Argument], OptionArg)
 
 struct Console {
 	var commands: [Command]
-	var completion: ((CommandArg) -> ())?
+	var completion: (([Argument], OptionArg) -> ())?
 	var failure: (() -> ())?
 	var name: String
 	
@@ -413,12 +413,12 @@ struct Console {
 		commands.append(command)
 	}
 	
-	mutating func command(options: [Option] = [], inputs: [ArgumentInput] = [], execution: @escaping (CommandArg) -> ([Argument]?)) {
+	mutating func command(options: [Option] = [], inputs: [ArgumentInput] = [], execution: @escaping ([Argument], OptionArg) -> ([Argument]?)) {
 		let com = Command(options: options, inputs: inputs, execution: execution)
 		commands.append(com)
 	}
 	
-	mutating func terminateWith(options: [Option] = [], inputs: [ArgumentInput] = [], execution: @escaping (CommandArg) -> Void) {
+	mutating func terminateWith(options: [Option] = [], inputs: [ArgumentInput] = [], execution: @escaping ([Argument], OptionArg) -> Void) {
 		let com = Command(options: options, inputs: inputs, finalExecution: execution)
 		commands.append(com)
 	}
@@ -457,7 +457,7 @@ struct Console {
 						let resopts = command.responseOptions(userOptions)
 						failed = false
 						
-						args = command.execution((args ?? [], resopts))
+						args = command.execution(args ?? [], resopts)
 						if args == nil { return }
 					}
 				}
@@ -472,7 +472,7 @@ struct Console {
 			if vo && va {
 				let resopts = command.responseOptions(userOptions)
 				failed = false
-				args = command.execution((args ?? [], resopts))
+				args = command.execution(args ?? [], resopts)
 				if (!completeAll || args == nil) {
 					break
 				}
@@ -481,8 +481,8 @@ struct Console {
 		if failed {
 			failure?()
 		} else {
-			completion?((args ?? [], [:]))
+			completion?(args ?? [], [:])
 		}
 		
 	}
-} 
+}
